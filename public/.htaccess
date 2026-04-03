@@ -1,0 +1,16 @@
+# React Router SPA – przekierowanie wszystkich tras do index.html
+# InfinityFree / Apache
+
+Options -MultiViews
+RewriteEngine On
+
+# Blokuj dostęp do ukrytych plików (.env, .git itp.)
+RewriteRule ^\.env - [F,L]
+RewriteRule ^\.git - [F,L]
+
+# Nie przepisuj istniejących plików i katalogów (CSS, JS, obrazy)
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Wszystkie pozostałe trasy → index.html (React Router)
+RewriteRule ^ index.html [L]
