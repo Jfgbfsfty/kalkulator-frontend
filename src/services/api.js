@@ -3,7 +3,7 @@ import axios from 'axios';
 // W produkcji VITE_API_URL = URL backendu (np. https://api.twoja-domena.com)
 // W trybie dev jest puste – użetwany proxy Vite (patrz vite.config.js)
 const BASE_URL = import.meta.env.VITE_API_URL
-  ? `${import.meta.env.VITE_API_URL}/api`
+  ? `${import.meta.env.VITE_API_URL.replace(/^"|"$/g, '')}/api`
   : '/api';
 
 const api = axios.create({
