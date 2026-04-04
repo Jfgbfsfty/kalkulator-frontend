@@ -122,7 +122,7 @@ export default function Login() {
         </div>
 
         <p className="text-center text-slate-600 text-xs mt-6">
-          © 2024 Kalkulator Mandátów – Polskie RP
+          © 2026 Kalkulator Mandatów – Polskie RP
         </p>
       </div>
     </div>
