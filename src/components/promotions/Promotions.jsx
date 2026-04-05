@@ -3,7 +3,7 @@ import api from '../../services/api.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import toast from 'react-hot-toast';
 
-const PLAYER_RANKS = ['Kadet', 'Drogówka', 'Sierżant', 'Z-szef', 'Szef'];
+const PLAYER_RANKS = ['Drógówka', 'Kadet', 'Sierżant', 'Z-szef', 'Szef'];
 
 const TYPE_CONFIG = {
   AWANS: {
