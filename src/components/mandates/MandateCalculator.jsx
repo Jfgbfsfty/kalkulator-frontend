@@ -38,6 +38,13 @@ export default function MandateCalculator() {
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [collapsedCats, setCollapsedCats] = useState(new Set());
+
+  const toggleCat = (cat) => setCollapsedCats((prev) => {
+    const next = new Set(prev);
+    if (next.has(cat)) next.delete(cat); else next.add(cat);
+    return next;
+  });
 
   const fetchMandates = async () => {
     setLoading(true);
@@ -200,12 +207,27 @@ export default function MandateCalculator() {
                 Brak mandatów w tej kategorii
               </div>
             )}
-            {Object.entries(grouped).map(([category, items]) => (
-              <div key={category} className="card">
-                <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-lg border text-sm font-medium mb-4 ${CATEGORY_COLORS[category]}`}>
-                  {CATEGORY_LABELS[category]}
-                </div>
-                <div className="space-y-2">
+            {Object.entries(grouped).map(([category, items]) => {
+              const isCollapsed = collapsedCats.has(category);
+              return (
+              <div key={category} className="bg-dark-700 border border-dark-600 rounded-xl overflow-hidden">
+                <button
+                  onClick={() => toggleCat(category)}
+                  className="w-full flex items-center justify-between px-4 py-3 hover:bg-dark-600/40 transition-colors"
+                >
+                  <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-lg border text-sm font-medium ${CATEGORY_COLORS[category]}`}>
+                    {CATEGORY_LABELS[category]}
+                    <span className="opacity-60 text-xs">({items.length})</span>
+                  </div>
+                  <svg
+                    className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isCollapsed ? '' : 'rotate-180'}`}
+                    fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/>
+                  </svg>
+                </button>
+                {!isCollapsed && (
+                <div className="px-4 pb-4 space-y-2">
                   {items.map((m) => (
                     <div
                       key={m._id}
@@ -265,13 +287,15 @@ export default function MandateCalculator() {
                     </div>
                   ))}
                 </div>
+                )}
               </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Panel sumy */}
           <div className="xl:col-span-1">
-            <div className="card sticky top-0">
+            <div className="card xl:sticky xl:top-0">
               <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
                 <svg className="w-4 h-4 text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 11h.01M12 11h.01M15 11h.01M4 19h16a2 2 0 002-2V7a2 2 0 00-2-2H4a2 2 0 00-2 2v10a2 2 0 002 2z"/>

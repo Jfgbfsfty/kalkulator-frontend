@@ -10,7 +10,7 @@ const pageTitles = {
   '/admin': 'Panel Zarządzania',
 };
 
-export default function Topbar() {
+export default function Topbar({ onMenuClick }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
@@ -24,9 +24,19 @@ export default function Topbar() {
   };
 
   return (
-    <header className="bg-dark-800 border-b border-dark-600 px-6 py-4 flex items-center justify-between shrink-0">
-      <div>
-        <h1 className="text-lg font-semibold text-white">{title}</h1>
+    <header className="bg-dark-800 border-b border-dark-600 px-4 md:px-6 py-4 flex items-center gap-3 justify-between shrink-0">
+      {/* Hamburger – tylko mobile */}
+      <button
+        onClick={onMenuClick}
+        className="lg:hidden p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-dark-700 shrink-0"
+        aria-label="Menu"
+      >
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16"/>
+        </svg>
+      </button>
+      <div className="min-w-0 flex-1">
+        <h1 className="text-lg font-semibold text-white truncate">{title}</h1>
         <p className="text-slate-500 text-xs">Polskie RP – Panel Zarządzania</p>
       </div>
 
