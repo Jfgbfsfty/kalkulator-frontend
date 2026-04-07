@@ -66,6 +66,7 @@ const formatLogDetails = (details) => {
 
 const emptyUserForm = { username: '', password: '', role: 'POLICJANT', discordId: '', discordUsername: '' };
 const emptyRoleForm = { discordUserId: '', roleId: '', username: '' };
+const SALARY_RANKS = ['Drogówka', 'Kadet', 'Sierżant', 'Z-szef', 'Szef'];
 
 export default function AdminPanel() {
   const { user: me, hasRole } = useAuth();
@@ -89,6 +90,8 @@ export default function AdminPanel() {
   const [discordTarget, setDiscordTarget] = useState(null);
   const [roleForm, setRoleForm] = useState(emptyRoleForm);
   const [discordAction, setDiscordAction] = useState('assign');
+  const [salaryRates, setSalaryRates] = useState({});
+  const [savingSalary, setSavingSalary] = useState(false);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -130,6 +133,32 @@ export default function AdminPanel() {
     finally { setLoading(false); }
   };
 
+  const fetchSalaryConfig = async () => {
+    try {
+      const res = await api.get('/salary-config');
+      const map = {};
+      (res.data.data || []).forEach((r) => { map[r.rankName] = r.hourlyRate; });
+      setSalaryRates(map);
+    } catch { toast.error('Błąd ładowania stawek'); }
+  };
+
+  const handleSaveSalary = async (e) => {
+    e.preventDefault();
+    setSavingSalary(true);
+    try {
+      const updates = SALARY_RANKS.map((rankName) => ({
+        rankName,
+        hourlyRate: Number(salaryRates[rankName]) || 0,
+      }));
+      await api.put('/salary-config', updates);
+      toast.success('Stawki zapisane!');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Błąd zapisywania stawek');
+    } finally {
+      setSavingSalary(false);
+    }
+  };
+
   const handleClearAllDuty = async () => {
     if (!window.confirm('Wyczyścić godziny służby WSZYSTKICH użytkowników?')) return;
     setClearingDuty('all');
@@ -159,6 +188,7 @@ export default function AdminPanel() {
     else if (activeTab === 'audit') fetchAuditLogs();
     else if (activeTab === 'discord') fetchGuildRoles();
     else if (activeTab === 'duty') fetchDutyStats();
+    else if (activeTab === 'salary') fetchSalaryConfig();
   }, [activeTab]);
 
   const openCreateUser = () => {
@@ -251,6 +281,7 @@ export default function AdminPanel() {
     ...(hasRole('SZEF') ? [{ id: 'audit', label: 'Dziennik Audytu' }] : []),
     { id: 'discord', label: 'Discord' },
     ...(hasRole('SZEF') ? [{ id: 'duty', label: 'Godziny Służby' }] : []),
+    ...(hasRole('SZEF') ? [{ id: 'salary', label: 'Stawki' }] : []),
   ];
 
   return (
@@ -606,6 +637,40 @@ export default function AdminPanel() {
             <h3 className="font-semibold text-white mb-2">Wyślij log na Discord</h3>
             <p className="text-slate-500 text-sm mb-4">Ręczne wysłanie wiadomości na kanał logów</p>
             <SendDiscordLog />
+          </div>
+        </div>
+      )}
+
+      {/* Zakładka: Stawki godzinowe */}
+      {activeTab === 'salary' && (
+        <div className="space-y-4">
+          <div className="card">
+            <h3 className="font-semibold text-white mb-1">Stawki godzinowe</h3>
+            <p className="text-slate-400 text-sm mb-6">Kwota wypłacana za 1 godzinę służby na danym stopniu (widoczna w komendzie <code className="text-primary-400">/off</code>)</p>
+            <form onSubmit={handleSaveSalary} className="space-y-4">
+              {SALARY_RANKS.map((rank) => (
+                <div key={rank} className="flex items-center gap-4">
+                  <label className="text-slate-300 text-sm w-28 shrink-0">{rank}</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      className="input-field w-32"
+                      value={salaryRates[rank] ?? ''}
+                      onChange={(e) => setSalaryRates({ ...salaryRates, [rank]: e.target.value })}
+                      placeholder="0"
+                    />
+                    <span className="text-slate-400 text-sm">zł / h</span>
+                  </div>
+                </div>
+              ))}
+              <div className="pt-2">
+                <button type="submit" disabled={savingSalary} className="btn-primary">
+                  {savingSalary ? 'Zapisywanie...' : 'Zapisz stawki'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
