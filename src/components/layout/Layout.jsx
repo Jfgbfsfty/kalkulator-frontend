@@ -22,10 +22,6 @@ export default function Layout() {
           <Outlet />
         </main>
       </div>
-      {/* Watermark */}
-      <div className="fixed bottom-3 right-4 text-slate-600 text-xs select-none pointer-events-none z-50">
-        By: _lama_7
-      </div>
     </div>
   );
 }

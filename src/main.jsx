@@ -11,6 +11,22 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <BrowserRouter>
       <AuthProvider>
         <App />
+        <div
+          style={{
+            position: 'fixed',
+            bottom: '10px',
+            right: '14px',
+            fontSize: '11px',
+            color: 'rgba(148,163,184,0.45)',
+            userSelect: 'none',
+            pointerEvents: 'none',
+            zIndex: 99999,
+            fontFamily: 'Inter, sans-serif',
+            letterSpacing: '0.03em',
+          }}
+        >
+          By: _lama_7
+        </div>
         <Toaster
           position="top-right"
           toastOptions={{
