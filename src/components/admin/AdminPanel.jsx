@@ -68,7 +68,7 @@ const emptyUserForm = { username: '', password: '', role: 'POLICJANT', discordId
 const emptyRoleForm = { discordUserId: '', roleId: '', username: '' };
 const SALARY_RANKS = ['Drogówka', 'Kadet', 'Sierżant', 'Z-szef', 'Szef'];
 const DISMISSAL_RANKS = ['Drogówka', 'Kadet', 'Sierżant', 'Z-szef', 'Szef'];
-const emptyDismissalForm = { playerNick: '', playerDiscordId: '', playerDiscordUsername: '', rank: 'Drogówka', reason: '', signedBy: '' };
+const emptyDismissalForm = { playerNick: '', playerDiscordId: '', playerDiscordUsername: '', rank: 'Drogówka', reason: '', signedBy: '', sendToChannel: true };
 
 export default function AdminPanel() {
   const { user: me, hasRole } = useAuth();
@@ -325,7 +325,7 @@ export default function AdminPanel() {
     { id: 'discord', label: 'Discord' },
     ...(hasRole('SZEF') ? [{ id: 'duty', label: 'Godziny Służby' }] : []),
     ...(hasRole('SZEF') ? [{ id: 'salary', label: 'Stawki' }] : []),
-    ...(hasRole('SZEF') ? [{ id: 'dismissals', label: 'Zwolnienia' }] : []),
+    ...(hasRole('ZASTEPCA') ? [{ id: 'dismissals', label: 'Zwolnienia' }] : []),
   ];
 
   return (
@@ -720,7 +720,7 @@ export default function AdminPanel() {
       )}
 
       {/* Zakładka: Zwolnienia */}
-      {activeTab === 'dismissals' && hasRole('SZEF') && (
+      {activeTab === 'dismissals' && hasRole('ZASTEPCA') && (
         <div className="space-y-4">
           {/* Formularz wystawienia zwolnienia */}
           <div className="card">
@@ -799,6 +799,17 @@ export default function AdminPanel() {
                   maxLength={500}
                   required
                 />
+              </div>
+              <div className="flex items-center gap-3">
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 rounded accent-primary-500"
+                    checked={dismissalForm.sendToChannel}
+                    onChange={(e) => setDismissalForm({ ...dismissalForm, sendToChannel: e.target.checked })}
+                  />
+                  <span className="text-slate-300 text-sm">Wyślij powiadomienie na kanał Discord</span>
+                </label>
               </div>
               <button type="submit" disabled={savingDismissal} className="btn-danger">
                 {savingDismissal ? 'Wystawianie...' : '🚫 Wystaw zwolnienie'}
