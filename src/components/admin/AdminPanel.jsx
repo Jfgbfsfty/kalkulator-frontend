@@ -67,6 +67,8 @@ const formatLogDetails = (details) => {
 const emptyUserForm = { username: '', password: '', role: 'POLICJANT', discordId: '', discordUsername: '' };
 const emptyRoleForm = { discordUserId: '', roleId: '', username: '' };
 const SALARY_RANKS = ['Drogówka', 'Kadet', 'Sierżant', 'Z-szef', 'Szef'];
+const DISMISSAL_RANKS = ['Drogówka', 'Kadet', 'Sierżant', 'Z-szef', 'Szef'];
+const emptyDismissalForm = { playerNick: '', playerDiscordId: '', playerDiscordUsername: '', rank: 'Drogówka', reason: '', signedBy: '' };
 
 export default function AdminPanel() {
   const { user: me, hasRole } = useAuth();
@@ -92,6 +94,11 @@ export default function AdminPanel() {
   const [discordAction, setDiscordAction] = useState('assign');
   const [salaryRates, setSalaryRates] = useState({});
   const [savingSalary, setSavingSalary] = useState(false);
+  const [dismissals, setDismissals] = useState([]);
+  const [loadingDismissals, setLoadingDismissals] = useState(false);
+  const [savingDismissal, setSavingDismissal] = useState(false);
+  const [dismissalForm, setDismissalForm] = useState(emptyDismissalForm);
+  const [deleteConfirmDismissal, setDeleteConfirmDismissal] = useState(null);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -183,12 +190,48 @@ export default function AdminPanel() {
     } finally { setClearingDuty(null); }
   };
 
+  const fetchDismissals = async () => {
+    setLoadingDismissals(true);
+    try {
+      const res = await api.get('/dismissals');
+      setDismissals(res.data.data || []);
+    } catch { toast.error('Błąd ładowania zwolnień'); }
+    finally { setLoadingDismissals(false); }
+  };
+
+  const handleCreateDismissal = async (e) => {
+    e.preventDefault();
+    setSavingDismissal(true);
+    try {
+      await api.post('/dismissals', dismissalForm);
+      toast.success('Zwolnienie wystawione!');
+      setDismissalForm(emptyDismissalForm);
+      fetchDismissals();
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.response?.data?.errors?.[0]?.msg || 'Błąd wystawiania zwolnienia');
+    } finally {
+      setSavingDismissal(false);
+    }
+  };
+
+  const handleDeleteDismissal = async (id) => {
+    try {
+      await api.delete(`/dismissals/${id}`);
+      toast.success('Zwolnienie usunięte');
+      setDeleteConfirmDismissal(null);
+      fetchDismissals();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Błąd usuwania');
+    }
+  };
+
   useEffect(() => {
     if (activeTab === 'users') fetchUsers();
     else if (activeTab === 'audit') fetchAuditLogs();
     else if (activeTab === 'discord') fetchGuildRoles();
     else if (activeTab === 'duty') fetchDutyStats();
     else if (activeTab === 'salary') fetchSalaryConfig();
+    else if (activeTab === 'dismissals') fetchDismissals();
   }, [activeTab]);
 
   const openCreateUser = () => {
@@ -282,6 +325,7 @@ export default function AdminPanel() {
     { id: 'discord', label: 'Discord' },
     ...(hasRole('SZEF') ? [{ id: 'duty', label: 'Godziny Służby' }] : []),
     ...(hasRole('SZEF') ? [{ id: 'salary', label: 'Stawki' }] : []),
+    ...(hasRole('SZEF') ? [{ id: 'dismissals', label: 'Zwolnienia' }] : []),
   ];
 
   return (
@@ -674,6 +718,166 @@ export default function AdminPanel() {
           </div>
         </div>
       )}
+
+      {/* Zakładka: Zwolnienia */}
+      {activeTab === 'dismissals' && hasRole('SZEF') && (
+        <div className="space-y-4">
+          {/* Formularz wystawienia zwolnienia */}
+          <div className="card">
+            <h3 className="font-semibold text-white mb-1">Wystaw zwolnienie</h3>
+            <p className="text-slate-400 text-sm mb-4">Zwolniony gracz otrzyma DM na Discord, a wszystkie role stopnia zostaną automatycznie usunięte.</p>
+            <form onSubmit={handleCreateDismissal} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">Nick gracza *</label>
+                  <input
+                    type="text"
+                    className="input-field"
+                    placeholder="np. kowalski_jan"
+                    value={dismissalForm.playerNick}
+                    onChange={(e) => setDismissalForm({ ...dismissalForm, playerNick: e.target.value })}
+                    maxLength={50}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">Stopień *</label>
+                  <select
+                    className="input-field"
+                    value={dismissalForm.rank}
+                    onChange={(e) => setDismissalForm({ ...dismissalForm, rank: e.target.value })}
+                    required
+                  >
+                    {DISMISSAL_RANKS.map((r) => (
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">Discord ID gracza (opcjonalne)</label>
+                  <input
+                    type="text"
+                    className="input-field"
+                    placeholder="np. 123456789012345678"
+                    value={dismissalForm.playerDiscordId}
+                    onChange={(e) => setDismissalForm({ ...dismissalForm, playerDiscordId: e.target.value })}
+                    maxLength={30}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">Discord Username (opcjonalne)</label>
+                  <input
+                    type="text"
+                    className="input-field"
+                    placeholder="np. kowalski#1234"
+                    value={dismissalForm.playerDiscordUsername}
+                    onChange={(e) => setDismissalForm({ ...dismissalForm, playerDiscordUsername: e.target.value })}
+                    maxLength={100}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">Podpisał *</label>
+                  <input
+                    type="text"
+                    className="input-field"
+                    placeholder="np. Szef Kowalski"
+                    value={dismissalForm.signedBy}
+                    onChange={(e) => setDismissalForm({ ...dismissalForm, signedBy: e.target.value })}
+                    maxLength={100}
+                    required
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs text-slate-400 mb-1">Powód zwolnienia *</label>
+                <textarea
+                  className="input-field resize-none"
+                  rows={3}
+                  placeholder="Opisz powód zwolnienia..."
+                  value={dismissalForm.reason}
+                  onChange={(e) => setDismissalForm({ ...dismissalForm, reason: e.target.value })}
+                  maxLength={500}
+                  required
+                />
+              </div>
+              <button type="submit" disabled={savingDismissal} className="btn-danger">
+                {savingDismissal ? 'Wystawianie...' : '🚫 Wystaw zwolnienie'}
+              </button>
+            </form>
+          </div>
+
+          {/* Tabela zwolnień */}
+          {loadingDismissals ? <LoadingSpinner /> : (
+            <div className="card p-0 overflow-hidden">
+              <table className="w-full">
+                <thead className="bg-dark-800">
+                  <tr>
+                    <th className="table-header">Gracz</th>
+                    <th className="table-header">Stopień</th>
+                    <th className="table-header">Powód</th>
+                    <th className="table-header">Podpisał</th>
+                    <th className="table-header">Wystawił</th>
+                    <th className="table-header">Discord</th>
+                    <th className="table-header">Data</th>
+                    <th className="table-header">Akcje</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {dismissals.length === 0 ? (
+                    <tr><td colSpan={8} className="text-center text-slate-500 py-12">Brak zwolnień</td></tr>
+                  ) : dismissals.map((d) => (
+                    <tr key={d._id} className="table-row">
+                      <td className="table-cell">
+                        <div>
+                          <p className="text-slate-200 font-medium">{d.playerNick}</p>
+                          {d.playerDiscordUsername && <p className="text-slate-500 text-xs">{d.playerDiscordUsername}</p>}
+                        </div>
+                      </td>
+                      <td className="table-cell">
+                        <span className="badge-red">{d.rank}</span>
+                      </td>
+                      <td className="table-cell text-slate-400 text-xs max-w-xs">
+                        <span title={d.reason}>{d.reason.length > 60 ? d.reason.slice(0, 60) + '…' : d.reason}</span>
+                      </td>
+                      <td className="table-cell text-slate-300 text-sm">{d.signedBy}</td>
+                      <td className="table-cell text-slate-400 text-xs">{d.issuedByUsername || '—'}</td>
+                      <td className="table-cell text-center">
+                        <div className="flex flex-col gap-0.5 items-center">
+                          <span className={`text-xs ${d.dmSent ? 'text-emerald-400' : 'text-slate-500'}`}>{d.dmSent ? '✅ DM' : '— DM'}</span>
+                          <span className={`text-xs ${d.roleRemoved ? 'text-emerald-400' : 'text-slate-500'}`}>{d.roleRemoved ? '✅ Ranga' : '— Ranga'}</span>
+                        </div>
+                      </td>
+                      <td className="table-cell text-slate-400 text-xs whitespace-nowrap">
+                        {new Date(d.createdAt).toLocaleString('pl-PL')}
+                      </td>
+                      <td className="table-cell">
+                        <button
+                          onClick={() => setDeleteConfirmDismissal(d)}
+                          className="text-slate-400 hover:text-red-400 p-1 rounded hover:bg-dark-600 transition-colors"
+                          title="Usuń wpis"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Modal: Usuń zwolnienie */}
+      <Modal isOpen={!!deleteConfirmDismissal} onClose={() => setDeleteConfirmDismissal(null)} title="Usuń zwolnienie" size="sm">
+        <p className="text-slate-300 mb-2">Usunąć wpis zwolnienia gracza:</p>
+        <p className="text-white font-semibold mb-2">{deleteConfirmDismissal?.playerNick}</p>
+        <p className="text-red-400 text-sm mb-6">To usuwa tylko wpis z bazy – rola i DM nie zostaną cofnięte.</p>
+        <div className="flex gap-3">
+          <button onClick={() => handleDeleteDismissal(deleteConfirmDismissal._id)} className="btn-danger flex-1">Usuń wpis</button>
+          <button onClick={() => setDeleteConfirmDismissal(null)} className="btn-secondary flex-1">Anuluj</button>
+        </div>
+      </Modal>
 
       {/* Modal: Tworzenie/edycja użytkownika */}
       <Modal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} title={editingUser ? 'Edytuj użytkownika' : 'Nowy użytkownik'}>
