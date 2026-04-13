@@ -51,6 +51,16 @@ function ReviewModal({ request, onClose, onDone }) {
             <p className="text-slate-300"><span className="text-slate-500">Godziny:</span> ~{request.hoursWorked}h</p>
           </div>
 
+          {status === 'ZATWIERDZONY' && (
+            <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-xs text-emerald-300 space-y-0.5">
+              <p className="font-semibold">✅ Po zatwierdzeniu automatycznie:</p>
+              <p>• Zostanie wystawiony awans w zakładce Awanse i Degrady</p>
+              <p>• Na kanale Discord pojawi się embed z pingiem gracza</p>
+              <p>• Rola Discord gracza zmieni się ({request.currentRank} → {request.desiredRank})</p>
+              <p>• Podpisał: <span className="font-semibold">{request.submittedByUsername ? `konto: ${request.submittedByUsername}` : '—'}</span> (nazwa Twojego konta)</p>
+            </div>
+          )}
+
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-2">Decyzja</label>
             <div className="flex gap-3">
