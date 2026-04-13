@@ -10,6 +10,8 @@ import AdminPanel from './components/admin/AdminPanel.jsx';
 import CVForm from './components/cv/CVForm.jsx';
 import Promotions from './components/promotions/Promotions.jsx';
 import Dismissals from './components/dismissals/Dismissals.jsx';
+import PromotionRequestForm from './components/promotionRequests/PromotionRequestForm.jsx';
+import PromotionRequestsAdmin from './components/promotionRequests/PromotionRequestsAdmin.jsx';
 import LoadingSpinner from './components/common/LoadingSpinner.jsx';
 
 // Route wymagający autoryzacji
@@ -58,6 +60,15 @@ export default function App() {
         <Route path="wanted-vehicles" element={<WantedVehicles />} />
         <Route path="licenses" element={<CollectedLicenses />} />
         <Route path="promotions" element={<Promotions />} />
+        <Route path="promotion-request" element={<PromotionRequestForm />} />
+        <Route
+          path="promotion-requests-admin"
+          element={
+            <AdminRoute>
+              <PromotionRequestsAdmin />
+            </AdminRoute>
+          }
+        />
         <Route
           path="dismissals"
           element={
