@@ -504,7 +504,15 @@ export default function AdminPanel() {
                           )}
                         </td>
                         <td className="table-cell">
-                          <span className="text-slate-300 text-sm">{log.performedByUsername}</span>
+                          <div>
+                            <p className="text-slate-300 text-sm">{log.performedByUsername}</p>
+                            {log.performedByDiscordUsername && (
+                              <p className="text-indigo-400 text-xs">🎮 {log.performedByDiscordUsername}</p>
+                            )}
+                            {log.performedByDiscordId && (
+                              <p className="text-slate-600 text-xs select-all">{log.performedByDiscordId}</p>
+                            )}
+                          </div>
                         </td>
                         <td className="table-cell text-slate-400 text-xs max-w-xs">
                           {formatLogDetails(log.details)}
