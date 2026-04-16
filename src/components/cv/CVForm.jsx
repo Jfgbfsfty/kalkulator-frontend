@@ -10,6 +10,7 @@ const emptyForm = {
   experience: '',
   availability: '',
   contactDiscord: '',
+  discordUserId: '',
   additionalInfo: '',
 };
 
@@ -171,6 +172,24 @@ export default function CVForm() {
               maxLength={100}
             />
           </div>
+        </div>
+
+        {/* Discord ID */}
+        <div>
+          <label className="block text-sm font-medium text-slate-300 mb-1">
+            Discord ID
+            <span className="ml-1 text-slate-500 font-normal text-xs">(opcjonalne – umożliwia automatyczne nadanie roli po akceptacji)</span>
+          </label>
+          <input
+            type="text"
+            className="input-field"
+            placeholder="np. 123456789012345678"
+            value={form.discordUserId}
+            onChange={set('discordUserId')}
+            maxLength={20}
+            inputMode="numeric"
+          />
+          <p className="text-slate-600 text-xs mt-1">Swoje ID znajdziesz w ustawieniach Discord → Zaawansowane → Tryb dewelopera → kliknij prawym na swój nick → Kopiuj ID</p>
         </div>
 
         {/* Dodatkowe informacje */}
