@@ -92,6 +92,9 @@ export default function AdminPanel() {
   const [discordAction, setDiscordAction] = useState('assign');
   const [salaryRates, setSalaryRates] = useState({});
   const [savingSalary, setSavingSalary] = useState(false);
+  const [inviteLinks, setInviteLinks] = useState([]);
+  const [generatingInvite, setGeneratingInvite] = useState(false);
+  const [inviteLoading, setInviteLoading] = useState(false);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -159,6 +162,39 @@ export default function AdminPanel() {
     }
   };
 
+  const fetchInviteLinks = async () => {
+    setInviteLoading(true);
+    try {
+      const res = await api.get('/invite/list');
+      setInviteLinks(res.data.data || []);
+    } catch { toast.error('Błąd ładowania linków'); }
+    finally { setInviteLoading(false); }
+  };
+
+  const handleGenerateInvite = async () => {
+    setGeneratingInvite(true);
+    try {
+      const res = await api.post('/invite');
+      await navigator.clipboard.writeText(res.data.link);
+      toast.success('Link skopiowany do schowka!');
+      fetchInviteLinks();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Błąd generowania linku');
+    } finally {
+      setGeneratingInvite(false);
+    }
+  };
+
+  const handleDeleteInvite = async (token) => {
+    try {
+      await api.delete(`/invite/${token}`);
+      setInviteLinks((prev) => prev.filter((l) => l.token !== token));
+      toast.success('Link usunięty');
+    } catch {
+      toast.error('Błąd usuwania linku');
+    }
+  };
+
   const handleClearAllDuty = async () => {
     if (!window.confirm('Wyczyścić godziny służby WSZYSTKICH użytkowników?')) return;
     setClearingDuty('all');
@@ -189,6 +225,7 @@ export default function AdminPanel() {
     else if (activeTab === 'discord') fetchGuildRoles();
     else if (activeTab === 'duty') fetchDutyStats();
     else if (activeTab === 'salary') fetchSalaryConfig();
+    else if (activeTab === 'invites') fetchInviteLinks();
   }, [activeTab]);
 
   const openCreateUser = () => {
@@ -282,6 +319,7 @@ export default function AdminPanel() {
     { id: 'discord', label: 'Discord' },
     ...(hasRole('SZEF') ? [{ id: 'duty', label: 'Godziny Służby' }] : []),
     ...(hasRole('SZEF') ? [{ id: 'salary', label: 'Stawki' }] : []),
+    ...(hasRole('SZEF') ? [{ id: 'invites', label: 'Linki rejestracyjne' }] : []),
   ];
 
   return (
@@ -679,6 +717,81 @@ export default function AdminPanel() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Linki rejestracyjne ── */}
+      {activeTab === 'invites' && hasRole('SZEF') && (
+        <div className="space-y-4">
+          <div className="card">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="font-semibold text-white">Linki rejestracyjne</h3>
+                <p className="text-slate-400 text-sm mt-0.5">Każdy link jest jednorazowy – osoba loguje się przez Discord i ustawia hasło. Rola "Policjant" nadawana automatycznie.</p>
+              </div>
+              <button
+                onClick={handleGenerateInvite}
+                disabled={generatingInvite}
+                className="btn-primary flex items-center gap-2 shrink-0"
+              >
+                {generatingInvite ? 'Generowanie...' : '+ Generuj link'}
+              </button>
+            </div>
+
+            {inviteLoading ? (
+              <div className="text-slate-400 text-sm py-4 text-center">Ładowanie...</div>
+            ) : inviteLinks.length === 0 ? (
+              <div className="text-slate-500 text-sm py-6 text-center">Brak wygenerowanych linków</div>
+            ) : (
+              <div className="space-y-2">
+                {inviteLinks.map((inv) => {
+                  const expired = new Date(inv.expiresAt) < new Date();
+                  const frontendUrl = import.meta.env.VITE_API_URL
+                    ? import.meta.env.VITE_API_URL.replace(/^"|"$/g, '').replace('/api', '').replace(':5000', ':3000')
+                    : window.location.origin;
+                  // Wyciągnij frontend URL z linku
+                  const link = `${window.location.origin}/invite/${inv.token}`;
+                  return (
+                    <div key={inv._id} className={`bg-dark-800 rounded-lg p-3 flex items-center gap-3 ${inv.used ? 'opacity-50' : ''}`}>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${inv.used ? 'bg-slate-700 text-slate-400' : expired ? 'bg-red-900/50 text-red-400' : 'bg-emerald-900/50 text-emerald-400'}`}>
+                            {inv.used ? `Użyty przez ${inv.usedBy?.username || '?'}` : expired ? 'Wygasły' : 'Aktywny'}
+                          </span>
+                          <span className="text-slate-500 text-xs">Wygasa: {new Date(inv.expiresAt).toLocaleDateString('pl-PL')}</span>
+                          <span className="text-slate-500 text-xs">Utworzył: {inv.createdBy?.username || '?'}</span>
+                        </div>
+                        {!inv.used && !expired && (
+                          <p className="text-slate-400 text-xs mt-1 truncate font-mono">{link}</p>
+                        )}
+                        {inv.used && inv.discordUsername && (
+                          <p className="text-slate-400 text-xs mt-1">Discord: {inv.discordUsername}</p>
+                        )}
+                      </div>
+                      <div className="flex gap-2 shrink-0">
+                        {!inv.used && !expired && (
+                          <button
+                            onClick={() => { navigator.clipboard.writeText(link); toast.success('Skopiowano!'); }}
+                            className="text-xs text-primary-400 hover:text-primary-300 transition-colors"
+                          >
+                            Kopiuj
+                          </button>
+                        )}
+                        {!inv.used && (
+                          <button
+                            onClick={() => handleDeleteInvite(inv.token)}
+                            className="text-xs text-red-400 hover:text-red-300 transition-colors"
+                          >
+                            Usuń
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       )}

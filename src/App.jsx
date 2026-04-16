@@ -8,6 +8,7 @@ import WantedVehicles from './components/wanted/WantedVehicles.jsx';
 import CollectedLicenses from './components/licenses/CollectedLicenses.jsx';
 import AdminPanel from './components/admin/AdminPanel.jsx';
 import CVForm from './components/cv/CVForm.jsx';
+import InvitePage from './components/auth/InvitePage.jsx';
 import Promotions from './components/promotions/Promotions.jsx';
 import Dismissals from './components/dismissals/Dismissals.jsx';
 import PromotionRequestForm from './components/promotionRequests/PromotionRequestForm.jsx';
@@ -44,6 +45,8 @@ export default function App() {
     <Routes>
       {/* Strona publiczna – formularz CV (bez logowania) */}
       <Route path="/cv" element={<CVForm />} />
+      {/* Rejestracja przez jednorazowy link */}
+      <Route path="/invite/:token" element={<InvitePage />} />
       {/* Panel logowania – ukryty adres */}
       <Route path="/panel" element={<Login />} />
       <Route
