@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext.jsx';
 import toast from 'react-hot-toast';
 import Modal from '../common/Modal.jsx';
 import LoadingSpinner from '../common/LoadingSpinner.jsx';
+import QRCode from 'react-qr-code';
 
 const ROLE_CONFIG = {
   SUPERADMIN: { label: 'Superadmin', cls: 'badge-red' },
@@ -203,7 +204,7 @@ export default function AdminPanel() {
     setTwoFASaving(true);
     try {
       const res = await api.post('/auth/2fa/setup');
-      setTwoFAQr(res.data.qrCode);
+      setTwoFAQr(res.data.otpauthUrl);
       toast.success('Zeskanuj kod QR w aplikacji, następnie potwierdź kodem');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Błąd generowania 2FA');
@@ -867,8 +868,8 @@ export default function AdminPanel() {
 
                 {twoFAQr && (
                   <form onSubmit={handle2FAEnable} className="space-y-4">
-                    <div className="flex justify-center">
-                      <img src={twoFAQr} alt="QR Code 2FA" className="w-48 h-48 rounded-lg bg-white p-2" />
+                    <div className="flex justify-center bg-white p-3 rounded-lg w-fit mx-auto">
+                      <QRCode value={twoFAQr} size={192} />
                     </div>
                     <p className="text-slate-400 text-xs text-center">
                       Zeskanuj kod QR w Google Authenticator lub Authy, następnie wprowadź wygenerowany kod poniżej
