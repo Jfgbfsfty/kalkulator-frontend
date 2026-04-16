@@ -56,6 +56,15 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (username, password) => {
     const res = await api.post('/auth/login', { username, password });
+    if (res.data.success && !res.data.requires2FA) {
+      setTokenAndScheduleRefresh(res.data.accessToken);
+      setUser(res.data.user);
+    }
+    return res.data;
+  };
+
+  const verifyTwoFactor = async (tempToken, code) => {
+    const res = await api.post('/auth/2fa/verify', { tempToken, code });
     if (res.data.success) {
       setTokenAndScheduleRefresh(res.data.accessToken);
       setUser(res.data.user);
@@ -82,7 +91,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, accessToken, loading, login, logout, hasRole, refreshAccessToken }}>
+    <AuthContext.Provider value={{ user, accessToken, loading, login, verifyTwoFactor, logout, hasRole, refreshAccessToken }}>
       {children}
     </AuthContext.Provider>
   );

@@ -7,7 +7,10 @@ export default function Login() {
   const [form, setForm] = useState({ username: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const { login } = useAuth();
+  const [twoFAStep, setTwoFAStep] = useState(false);
+  const [tempToken, setTempToken] = useState('');
+  const [totpCode, setTotpCode] = useState('');
+  const { login, verifyTwoFactor } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -22,7 +25,11 @@ export default function Login() {
     setLoading(true);
     try {
       const res = await login(form.username.trim(), form.password);
-      if (res.success) {
+      if (res.requires2FA) {
+        setTempToken(res.tempToken);
+        setTwoFAStep(true);
+        toast('Wprowadź kod z aplikacji uwierzytelniającej', { icon: '🔐' });
+      } else if (res.success) {
         toast.success(`Witaj, ${res.user.username}!`);
         navigate('/mandates');
       }
@@ -30,6 +37,31 @@ export default function Login() {
       const msg = err.response?.data?.message || 'Błąd logowania';
       setError(msg);
       toast.error(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTwoFA = async (e) => {
+    e.preventDefault();
+    setError('');
+    if (!totpCode.trim()) { setError('Wprowadź kod 2FA'); return; }
+    setLoading(true);
+    try {
+      const res = await verifyTwoFactor(tempToken, totpCode.trim());
+      if (res.success) {
+        toast.success(`Witaj, ${res.user.username}!`);
+        navigate('/mandates');
+      }
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Nieprawidłowy kod 2FA';
+      setError(msg);
+      toast.error(msg);
+      if (err.response?.status === 401 && msg.includes('wygasł')) {
+        setTwoFAStep(false);
+        setTempToken('');
+        setTotpCode('');
+      }
     } finally {
       setLoading(false);
     }
@@ -59,6 +91,46 @@ export default function Login() {
 
         {/* Formularz */}
         <div className="card border-dark-600 shadow-2xl">
+          {twoFAStep ? (
+            /* ── Krok 2FA ── */
+            <form onSubmit={handleTwoFA} className="space-y-5" autoComplete="off">
+              <div className="text-center">
+                <div className="inline-flex items-center justify-center w-12 h-12 bg-amber-600/20 border border-amber-500/30 rounded-xl mb-3">
+                  <svg className="w-6 h-6 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                </div>
+                <p className="text-white font-semibold">Weryfikacja dwuetapowa</p>
+                <p className="text-slate-400 text-sm mt-1">Wprowadź 6-cyfrowy kod z aplikacji uwierzytelniającej</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1.5">Kod 2FA</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  className="input-field text-center text-2xl tracking-widest"
+                  placeholder="000000"
+                  value={totpCode}
+                  onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  maxLength={6}
+                  autoFocus
+                  required
+                />
+              </div>
+              {error && (
+                <div className="bg-red-900/30 border border-red-700/50 text-red-300 text-sm px-4 py-3 rounded-lg">
+                  {error}
+                </div>
+              )}
+              <button type="submit" disabled={loading || totpCode.length < 6} className="btn-primary w-full py-2.5 disabled:opacity-50">
+                {loading ? 'Weryfikacja...' : 'Potwierdź'}
+              </button>
+              <button type="button" onClick={() => { setTwoFAStep(false); setTempToken(''); setTotpCode(''); setError(''); }}
+                className="w-full text-sm text-slate-500 hover:text-slate-300 transition-colors">
+                ← Wróć do logowania
+              </button>
+            </form>
+          ) : (
           <form onSubmit={handleSubmit} className="space-y-5" autoComplete="off">
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-1.5">
@@ -119,6 +191,7 @@ export default function Login() {
               )}
             </button>
           </form>
+          )}
         </div>
 
         <p className="text-center text-slate-600 text-xs mt-6">

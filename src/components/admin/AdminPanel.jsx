@@ -95,6 +95,10 @@ export default function AdminPanel() {
   const [inviteLinks, setInviteLinks] = useState([]);
   const [generatingInvite, setGeneratingInvite] = useState(false);
   const [inviteLoading, setInviteLoading] = useState(false);
+  const [twoFAQr, setTwoFAQr] = useState('');
+  const [twoFACode, setTwoFACode] = useState('');
+  const [twoFAEnabled, setTwoFAEnabled] = useState(me?.twoFactorEnabled || false);
+  const [twoFASaving, setTwoFASaving] = useState(false);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -193,6 +197,46 @@ export default function AdminPanel() {
     } catch {
       toast.error('Błąd usuwania linku');
     }
+  };
+
+  const handle2FASetup = async () => {
+    setTwoFASaving(true);
+    try {
+      const res = await api.post('/auth/2fa/setup');
+      setTwoFAQr(res.data.qrCode);
+      toast.success('Zeskanuj kod QR w aplikacji, następnie potwierdź kodem');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Błąd generowania 2FA');
+    } finally { setTwoFASaving(false); }
+  };
+
+  const handle2FAEnable = async (e) => {
+    e.preventDefault();
+    if (!twoFACode.trim()) return;
+    setTwoFASaving(true);
+    try {
+      await api.post('/auth/2fa/enable', { code: twoFACode });
+      setTwoFAEnabled(true);
+      setTwoFAQr('');
+      setTwoFACode('');
+      toast.success('2FA zostało aktywowane!');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Nieprawidłowy kod');
+    } finally { setTwoFASaving(false); }
+  };
+
+  const handle2FADisable = async (e) => {
+    e.preventDefault();
+    if (!twoFACode.trim()) return;
+    setTwoFASaving(true);
+    try {
+      await api.post('/auth/2fa/disable', { code: twoFACode });
+      setTwoFAEnabled(false);
+      setTwoFACode('');
+      toast.success('2FA zostało wyłączone');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Nieprawidłowy kod');
+    } finally { setTwoFASaving(false); }
   };
 
   const handleClearAllDuty = async () => {
@@ -320,6 +364,7 @@ export default function AdminPanel() {
     ...(hasRole('SZEF') ? [{ id: 'duty', label: 'Godziny Służby' }] : []),
     ...(hasRole('SZEF') ? [{ id: 'salary', label: 'Stawki' }] : []),
     ...(hasRole('SZEF') ? [{ id: 'invites', label: 'Linki rejestracyjne' }] : []),
+    ...(isSuperAdmin ? [{ id: 'security', label: '🔐 2FA' }] : []),
   ];
 
   return (
@@ -791,6 +836,83 @@ export default function AdminPanel() {
                   );
                 })}
               </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── 2FA ── */}
+      {activeTab === 'security' && isSuperAdmin && (
+        <div className="space-y-4 max-w-md">
+          <div className="card space-y-5">
+            <div>
+              <h3 className="font-semibold text-white">Weryfikacja dwuetapowa (2FA)</h3>
+              <p className="text-slate-400 text-sm mt-1">
+                Dodatkowe zabezpieczenie konta Superadmina. Po włączeniu każde logowanie będzie wymagać kodu z aplikacji (Google Authenticator, Authy, itp.).
+              </p>
+            </div>
+
+            <div className={`flex items-center gap-3 px-4 py-3 rounded-lg ${twoFAEnabled ? 'bg-emerald-900/30 border border-emerald-500/30' : 'bg-dark-800 border border-dark-600'}`}>
+              <span className="text-xl">{twoFAEnabled ? '✅' : '⚠️'}</span>
+              <span className={`text-sm font-medium ${twoFAEnabled ? 'text-emerald-300' : 'text-slate-400'}`}>
+                {twoFAEnabled ? '2FA jest aktywne' : '2FA nie jest aktywne'}
+              </span>
+            </div>
+
+            {!twoFAEnabled ? (
+              <div className="space-y-4">
+                <button onClick={handle2FASetup} disabled={twoFASaving} className="btn-primary w-full">
+                  {twoFASaving ? 'Generowanie...' : 'Skonfiguruj 2FA'}
+                </button>
+
+                {twoFAQr && (
+                  <form onSubmit={handle2FAEnable} className="space-y-4">
+                    <div className="flex justify-center">
+                      <img src={twoFAQr} alt="QR Code 2FA" className="w-48 h-48 rounded-lg bg-white p-2" />
+                    </div>
+                    <p className="text-slate-400 text-xs text-center">
+                      Zeskanuj kod QR w Google Authenticator lub Authy, następnie wprowadź wygenerowany kod poniżej
+                    </p>
+                    <div>
+                      <label className="block text-sm text-slate-300 mb-1">Kod weryfikacyjny</label>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        className="input-field text-center tracking-widest text-xl"
+                        placeholder="000000"
+                        value={twoFACode}
+                        onChange={(e) => setTwoFACode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        maxLength={6}
+                        required
+                      />
+                    </div>
+                    <button type="submit" disabled={twoFASaving || twoFACode.length < 6} className="btn-primary w-full disabled:opacity-50">
+                      {twoFASaving ? 'Aktywowanie...' : 'Aktywuj 2FA'}
+                    </button>
+                  </form>
+                )}
+              </div>
+            ) : (
+              <form onSubmit={handle2FADisable} className="space-y-4">
+                <p className="text-slate-400 text-sm">Aby wyłączyć 2FA, wprowadź aktualny kod z aplikacji uwierzytelniającej:</p>
+                <div>
+                  <label className="block text-sm text-slate-300 mb-1">Kod 2FA</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    className="input-field text-center tracking-widest text-xl"
+                    placeholder="000000"
+                    value={twoFACode}
+                    onChange={(e) => setTwoFACode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    maxLength={6}
+                    required
+                  />
+                </div>
+                <button type="submit" disabled={twoFASaving || twoFACode.length < 6}
+                  className="w-full py-2 px-4 bg-red-600 hover:bg-red-500 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50">
+                  {twoFASaving ? 'Wyłączanie...' : 'Wyłącz 2FA'}
+                </button>
+              </form>
             )}
           </div>
         </div>
