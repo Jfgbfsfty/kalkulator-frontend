@@ -1,6 +1,7 @@
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useNavigate, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import NotificationBell from '../common/NotificationBell.jsx';
 
 const pageTitles = {
   '/mandates': 'Kalkulator Mandatów',
@@ -46,6 +47,9 @@ export default function Topbar({ onMenuClick }) {
           <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
           Online
         </div>
+
+        {/* Dzwonek powiadomień */}
+        <NotificationBell />
 
         {/* Przycisk wylogowania */}
         <button
