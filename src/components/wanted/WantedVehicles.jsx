@@ -10,9 +10,10 @@ const STATUS_CONFIG = {
   ZWOLNIONY: { label: 'Zwolniony', cls: 'badge-green' },
 };
 
-const API_BASE = import.meta.env.VITE_API_URL
-  ? import.meta.env.VITE_API_URL.replace(/^"|"$/g, '')
-  : '';
+const API_BASE = (() => {
+  const raw = (import.meta.env.VITE_API_URL || '').replace(/^"|"$/g, '').replace(/\/api$/, '').replace(/\/$/, '');
+  return raw;
+})();
 
 const getImgUrl = (url) => {
   if (!url) return null;
@@ -61,13 +62,15 @@ export default function WantedVehicles() {
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (form.imagePreview) URL.revokeObjectURL(form.imagePreview);
-    setForm({ ...form, image: file, imagePreview: URL.createObjectURL(file), removeImage: false });
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      setForm((f) => ({ ...f, image: file, imagePreview: evt.target.result, removeImage: false }));
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleRemoveImage = () => {
-    if (form.imagePreview) URL.revokeObjectURL(form.imagePreview);
-    setForm({ ...form, image: null, imagePreview: null, removeImage: true });
+    setForm((f) => ({ ...f, image: null, imagePreview: null, removeImage: true }));
   };
 
   const handleSave = async (e) => {
