@@ -10,6 +10,9 @@ const STATUS_CONFIG = {
   ZWOLNIONY: { label: 'Zwolniony', cls: 'badge-green' },
 };
 
+const BACKEND = (import.meta.env.VITE_API_URL || '').replace(/^"|"$/g, '');
+const imgSrc = (id) => `${BACKEND}/api/wanted-vehicles/${id}/image`;
+
 const emptyForm = { model: '', licensePlate: '', owner: '', reason: '', status: 'POSZUKIWANY', image: null, imagePreview: null, removeImage: false };
 
 export default function WantedVehicles() {
@@ -152,12 +155,12 @@ export default function WantedVehicles() {
               ) : vehicles.map((v) => (
                 <tr key={v._id} className="table-row">
                   <td className="table-cell">
-                    {v.imageUrl && v.imageUrl.startsWith('data:') ? (
+                    {v.imageMimeType ? (
                       <img
-                        src={v.imageUrl}
+                        src={imgSrc(v._id)}
                         alt={v.model}
                         className="h-10 w-16 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
-                        onClick={() => setViewImage(v.imageUrl)}
+                        onClick={() => setViewImage(imgSrc(v._id))}
                       />
                     ) : (
                       <div className="h-10 w-16 rounded-lg bg-dark-700 border border-dark-600 flex items-center justify-center">
@@ -220,9 +223,9 @@ export default function WantedVehicles() {
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-1">Zdjęcie pojazdu</label>
-            {editing?.imageUrl && editing.imageUrl.startsWith('data:') && !form.removeImage && !form.imagePreview && (
+            {editing?.imageMimeType && !form.removeImage && !form.imagePreview && (
               <div className="mb-2 relative inline-block">
-                <img src={editing.imageUrl} alt="Aktualne zdjęcie" className="h-28 rounded-lg object-cover" />
+                <img src={imgSrc(editing._id)} alt="Aktualne zdjęcie" className="h-28 rounded-lg object-cover" />
                 <button type="button" onClick={handleRemoveImage}
                   className="absolute top-1 right-1 bg-red-600 hover:bg-red-700 rounded-full w-5 h-5 flex items-center justify-center text-white text-xs font-bold">
                   ✕
