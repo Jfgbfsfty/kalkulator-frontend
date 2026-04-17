@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../../services/api.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import toast from 'react-hot-toast';
+import UserPicker from '../common/UserPicker.jsx';
 
 const PLAYER_RANKS = ['Drógówka', 'Kadet', 'Sierżant', 'Z-szef', 'Szef'];
 
@@ -22,6 +23,7 @@ export default function Dismissals() {
   const [dismissals, setDismissals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState(emptyForm);
+  const [targetUser, setTargetUser] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [deleting, setDeleting] = useState(null);
 
@@ -53,11 +55,18 @@ export default function Dismissals() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!targetUser) { toast.error('Wybierz użytkownika z listy.'); return; }
     setSubmitting(true);
     try {
-      await api.post('/dismissals', form);
-      toast.success(`🚫 Zwolnienie dla ${form.playerNick} zostało wystawione!`);
+      await api.post('/dismissals', {
+        ...form,
+        playerNick: targetUser.discordUsername || targetUser.username,
+        playerDiscordId: targetUser.discordId || '',
+        playerDiscordUsername: targetUser.discordUsername || '',
+      });
+      toast.success(`🚫 Zwolnienie dla ${targetUser.discordUsername || targetUser.username} zostało wystawione!`);
       setForm(emptyForm);
+      setTargetUser(null);
       fetchDismissals();
     } catch (err) {
       const msg =
@@ -103,21 +112,14 @@ export default function Dismissals() {
           Nowe zwolnienie
         </h3>
 
+        <div>
+          <label className="block text-sm font-medium text-slate-300 mb-1">
+            Użytkownik <span className="text-red-400">*</span>
+          </label>
+          <UserPicker value={targetUser} onSelect={setTargetUser} placeholder="Wyszukaj po nicku lub Discord..." />
+        </div>
+
         <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1">
-              Nick gracza <span className="text-red-400">*</span>
-            </label>
-            <input
-              type="text"
-              className="input-field"
-              placeholder="np. Jan_Kowalski"
-              value={form.playerNick}
-              onChange={set('playerNick')}
-              maxLength={50}
-              required
-            />
-          </div>
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-1">
               Stopień <span className="text-red-400">*</span>
@@ -127,36 +129,6 @@ export default function Dismissals() {
                 <option key={r} value={r}>{r}</option>
               ))}
             </select>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1">
-              Discord ID gracza{' '}
-              <span className="text-slate-500 font-normal">(opcjonalne – do pingu i usunięcia roli)</span>
-            </label>
-            <input
-              type="text"
-              className="input-field"
-              placeholder="np. 123456789012345678"
-              value={form.playerDiscordId}
-              onChange={set('playerDiscordId')}
-              maxLength={30}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1">
-              Discord Username <span className="text-slate-500 font-normal">(opcjonalne)</span>
-            </label>
-            <input
-              type="text"
-              className="input-field"
-              placeholder="np. kowalski#1234"
-              value={form.playerDiscordUsername}
-              onChange={set('playerDiscordUsername')}
-              maxLength={100}
-            />
           </div>
         </div>
 
@@ -207,7 +179,7 @@ export default function Dismissals() {
 
         <button
           type="submit"
-          disabled={submitting}
+          disabled={submitting || !targetUser}
           className="btn-danger w-full flex items-center justify-center gap-2"
         >
           {submitting ? (

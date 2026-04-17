@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../../services/api.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import toast from 'react-hot-toast';
+import UserPicker from '../common/UserPicker.jsx';
 
 const PLAYER_RANKS = ['Drógówka', 'Kadet', 'Sierżant', 'Z-szef'];
 
@@ -35,6 +36,7 @@ export default function Promotions() {
   const [promotions, setPromotions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState(emptyForm);
+  const [targetUser, setTargetUser] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [deleting, setDeleting] = useState(null);
 
@@ -68,6 +70,7 @@ export default function Promotions() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!targetUser) { toast.error('Wybierz użytkownika z listy.'); return; }
     if (!form.fromRank || !form.toRank) {
       toast.error('Wybierz stopnie: z i na');
       return;
@@ -78,13 +81,19 @@ export default function Promotions() {
     }
     setSubmitting(true);
     try {
-      await api.post('/promotions', form);
+      await api.post('/promotions', {
+        ...form,
+        playerNick: targetUser.discordUsername || targetUser.username,
+        playerDiscordId: targetUser.discordId || '',
+      });
+      const nick = targetUser.discordUsername || targetUser.username;
       toast.success(
         form.type === 'AWANS'
-          ? `✅ Awans dla ${form.playerNick} został wystawiony i wysłany na Discord!`
-          : `✅ Degradacja dla ${form.playerNick} została wystawiona i wysłana na Discord!`
+          ? `✅ Awans dla ${nick} został wystawiony i wysłany na Discord!`
+          : `✅ Degradacja dla ${nick} została wystawiona i wysłana na Discord!`
       );
       setForm(emptyForm);
+      setTargetUser(null);
       fetchPromotions();
     } catch (err) {
       const msg =
@@ -129,21 +138,13 @@ export default function Promotions() {
           Nowy wpis
         </h3>
 
-        {/* Nick + Typ */}
+        {/* Użytkownik + Typ */}
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-1">
-              Nick gracza <span className="text-red-400">*</span>
+              Użytkownik <span className="text-red-400">*</span>
             </label>
-            <input
-              type="text"
-              className="input-field"
-              placeholder="np. Jan_Kowalski"
-              value={form.playerNick}
-              onChange={set('playerNick')}
-              maxLength={50}
-              required
-            />
+            <UserPicker value={targetUser} onSelect={setTargetUser} placeholder="Wyszukaj po nicku lub Discord..." />
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-1">
@@ -154,22 +155,6 @@ export default function Promotions() {
               <option value="DEGRADACJA">⬇️ Degradacja</option>
             </select>
           </div>
-        </div>
-
-        {/* Discord ID gracza */}
-        <div>
-          <label className="block text-sm font-medium text-slate-300 mb-1">
-            Discord ID gracza{' '}
-            <span className="text-slate-500 font-normal">(opcjonalne – potrzebne do automatycznej zamiany roli)</span>
-          </label>
-          <input
-            type="text"
-            className="input-field"
-            placeholder="np. 123456789012345678"
-            value={form.playerDiscordId}
-            onChange={set('playerDiscordId')}
-            maxLength={30}
-          />
         </div>
 
         {/* Stopnie */}
@@ -232,7 +217,7 @@ export default function Promotions() {
 
         <button
           type="submit"
-          disabled={submitting}
+          disabled={submitting || !targetUser}
           className={`btn-primary w-full flex items-center justify-center gap-2 ${
             form.type === 'DEGRADACJA' ? 'bg-red-600 hover:bg-red-700' : ''
           }`}
