@@ -158,6 +158,7 @@ export default function WantedVehicles() {
                         alt={v.model}
                         className="h-10 w-16 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
                         onClick={() => setViewImage(v.imageUrl)}
+                        onError={(e) => { e.target.style.display = 'none'; }}
                       />
                     ) : (
                       <div className="h-10 w-16 rounded-lg bg-dark-700 flex items-center justify-center">
@@ -222,7 +223,7 @@ export default function WantedVehicles() {
             <label className="block text-sm font-medium text-slate-300 mb-1">Zdjęcie pojazdu</label>
             {editing?.imageUrl && !form.removeImage && !form.imagePreview && (
               <div className="mb-2 relative inline-block">
-                <img src={v.imageUrl} alt="Aktualne zdjęcie" className="h-28 rounded-lg object-cover" />
+                <img src={editing.imageUrl} alt="Aktualne zdjęcie" className="h-28 rounded-lg object-cover" />
                 <button type="button" onClick={handleRemoveImage}
                   className="absolute top-1 right-1 bg-red-600 hover:bg-red-700 rounded-full w-5 h-5 flex items-center justify-center text-white text-xs font-bold">
                   ✕
