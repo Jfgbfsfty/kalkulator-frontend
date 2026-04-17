@@ -152,17 +152,16 @@ export default function WantedVehicles() {
               ) : vehicles.map((v) => (
                 <tr key={v._id} className="table-row">
                   <td className="table-cell">
-                    {v.imageUrl ? (
+                    {v.imageUrl && v.imageUrl.startsWith('data:') ? (
                       <img
                         src={v.imageUrl}
                         alt={v.model}
                         className="h-10 w-16 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
                         onClick={() => setViewImage(v.imageUrl)}
-                        onError={(e) => { e.target.style.display = 'none'; }}
                       />
                     ) : (
-                      <div className="h-10 w-16 rounded-lg bg-dark-700 flex items-center justify-center">
-                        <svg className="w-5 h-5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <div className="h-10 w-16 rounded-lg bg-dark-700 border border-dark-600 flex items-center justify-center">
+                        <svg className="w-5 h-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                         </svg>
                       </div>
@@ -221,7 +220,7 @@ export default function WantedVehicles() {
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-1">Zdjęcie pojazdu</label>
-            {editing?.imageUrl && !form.removeImage && !form.imagePreview && (
+            {editing?.imageUrl && editing.imageUrl.startsWith('data:') && !form.removeImage && !form.imagePreview && (
               <div className="mb-2 relative inline-block">
                 <img src={editing.imageUrl} alt="Aktualne zdjęcie" className="h-28 rounded-lg object-cover" />
                 <button type="button" onClick={handleRemoveImage}
