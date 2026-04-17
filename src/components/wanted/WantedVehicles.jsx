@@ -10,8 +10,8 @@ const STATUS_CONFIG = {
   ZWOLNIONY: { label: 'Zwolniony', cls: 'badge-green' },
 };
 
-const BACKEND = (import.meta.env.VITE_API_URL || '').replace(/^"|"$/g, '');
-const imgSrc = (id) => `${BACKEND}/api/wanted-vehicles/${id}/image`;
+// URL zdjęcia – używa tego samego baseURL co reszta API (dev: proxy Vite, prod: bezpośrednio)
+const imgSrc = (id) => `${api.defaults.baseURL}/wanted-vehicles/${id}/image`;
 
 const emptyForm = { model: '', licensePlate: '', owner: '', reason: '', status: 'POSZUKIWANY', image: null, imagePreview: null, removeImage: false };
 
