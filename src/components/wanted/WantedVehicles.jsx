@@ -55,7 +55,9 @@ export default function WantedVehicles() {
         try {
           const res = await api.get(`/wanted-vehicles/${v._id}/image`, { responseType: 'blob' });
           if (!cancelled) updates[v._id] = URL.createObjectURL(res.data);
-        } catch { /* brak zdjęcia, ignoruj */ }
+        } catch (err) {
+          console.error(`[WantedVehicles] obraz ${v._id} błąd:`, err?.response?.status, err?.message);
+        }
       }
       if (!cancelled) {
         setBlobUrls(prev => {
@@ -247,7 +249,7 @@ export default function WantedVehicles() {
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-1">Zdjęcie pojazdu</label>
-            {editing?.imageMimeType && !form.removeImage && !form.imagePreview && (
+            {editing?.imageMimeType && !form.removeImage && !form.imagePreview && blobUrls[editing._id] && (
               <div className="mb-2 relative inline-block">
                 <img src={blobUrls[editing._id]} alt="Aktualne zdjęcie" className="h-28 rounded-lg object-cover" />
                 <button type="button" onClick={handleRemoveImage}
