@@ -10,11 +10,6 @@ const STATUS_CONFIG = {
   ZWOLNIONY: { label: 'Zwolniony', cls: 'badge-green' },
 };
 
-// VITE_API_URL = https://backend.railway.app (bez /api)
-// W dev jest puste – Vite proxy obsługuje /uploads
-const BACKEND = (import.meta.env.VITE_API_URL || '').replace(/^"|"$/g, '');
-const getImgUrl = (url) => (url && !url.startsWith('http') ? `${BACKEND}${url}` : url);
-
 const emptyForm = { model: '', licensePlate: '', owner: '', reason: '', status: 'POSZUKIWANY', image: null, imagePreview: null, removeImage: false };
 
 export default function WantedVehicles() {
@@ -159,10 +154,10 @@ export default function WantedVehicles() {
                   <td className="table-cell">
                     {v.imageUrl ? (
                       <img
-                        src={getImgUrl(v.imageUrl)}
+                        src={v.imageUrl}
                         alt={v.model}
                         className="h-10 w-16 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
-                        onClick={() => setViewImage(getImgUrl(v.imageUrl))}
+                        onClick={() => setViewImage(v.imageUrl)}
                       />
                     ) : (
                       <div className="h-10 w-16 rounded-lg bg-dark-700 flex items-center justify-center">
@@ -227,7 +222,7 @@ export default function WantedVehicles() {
             <label className="block text-sm font-medium text-slate-300 mb-1">Zdjęcie pojazdu</label>
             {editing?.imageUrl && !form.removeImage && !form.imagePreview && (
               <div className="mb-2 relative inline-block">
-                <img src={getImgUrl(editing.imageUrl)} alt="Aktualne zdjęcie" className="h-28 rounded-lg object-cover" />
+                <img src={v.imageUrl} alt="Aktualne zdjęcie" className="h-28 rounded-lg object-cover" />
                 <button type="button" onClick={handleRemoveImage}
                   className="absolute top-1 right-1 bg-red-600 hover:bg-red-700 rounded-full w-5 h-5 flex items-center justify-center text-white text-xs font-bold">
                   ✕
