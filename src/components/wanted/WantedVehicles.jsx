@@ -11,7 +11,7 @@ const STATUS_CONFIG = {
 };
 
 // URL zdjęcia – używa tego samego baseURL co reszta API (dev: proxy Vite, prod: bezpośrednio)
-const imgSrc = (id) => `${api.defaults.baseURL}/wanted-vehicles/${id}/image`;
+// Nie używamy już imgSrc do src, zamiast tego blob URLs z api.get
 
 const emptyForm = { model: '', licensePlate: '', owner: '', reason: '', status: 'POSZUKIWANY', image: null, imagePreview: null, removeImage: false };
 
@@ -26,6 +26,7 @@ export default function WantedVehicles() {
   const [saving, setSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [viewImage, setViewImage] = useState(null);
+  const [blobUrls, setBlobUrls] = useState({});
 
   const fetchVehicles = async () => {
     setLoading(true);
@@ -43,6 +44,29 @@ export default function WantedVehicles() {
   };
 
   useEffect(() => { fetchVehicles(); }, [filterStatus]);
+
+  // Po załadowaniu listy pobierz obrazki przez api (ten sam axios = brak problemów CORS)
+  useEffect(() => {
+    let cancelled = false;
+    const fetchImages = async () => {
+      const updates = {};
+      for (const v of vehicles.filter(v => v.imageMimeType)) {
+        if (cancelled) return;
+        try {
+          const res = await api.get(`/wanted-vehicles/${v._id}/image`, { responseType: 'blob' });
+          if (!cancelled) updates[v._id] = URL.createObjectURL(res.data);
+        } catch { /* brak zdjęcia, ignoruj */ }
+      }
+      if (!cancelled) {
+        setBlobUrls(prev => {
+          Object.values(prev).forEach(u => URL.revokeObjectURL(u));
+          return updates;
+        });
+      }
+    };
+    if (vehicles.length > 0) fetchImages();
+    return () => { cancelled = true; };
+  }, [vehicles]);
 
   const openCreate = () => { setEditing(null); setForm(emptyForm); setShowModal(true); };
   const openEdit = (v) => {
@@ -155,12 +179,12 @@ export default function WantedVehicles() {
               ) : vehicles.map((v) => (
                 <tr key={v._id} className="table-row">
                   <td className="table-cell">
-                    {v.imageMimeType ? (
+                    {blobUrls[v._id] ? (
                       <img
-                        src={imgSrc(v._id)}
+                        src={blobUrls[v._id]}
                         alt={v.model}
                         className="h-10 w-16 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
-                        onClick={() => setViewImage(imgSrc(v._id))}
+                        onClick={() => setViewImage(blobUrls[v._id])}
                       />
                     ) : (
                       <div className="h-10 w-16 rounded-lg bg-dark-700 border border-dark-600 flex items-center justify-center">
@@ -225,7 +249,7 @@ export default function WantedVehicles() {
             <label className="block text-sm font-medium text-slate-300 mb-1">Zdjęcie pojazdu</label>
             {editing?.imageMimeType && !form.removeImage && !form.imagePreview && (
               <div className="mb-2 relative inline-block">
-                <img src={imgSrc(editing._id)} alt="Aktualne zdjęcie" className="h-28 rounded-lg object-cover" />
+                <img src={blobUrls[editing._id]} alt="Aktualne zdjęcie" className="h-28 rounded-lg object-cover" />
                 <button type="button" onClick={handleRemoveImage}
                   className="absolute top-1 right-1 bg-red-600 hover:bg-red-700 rounded-full w-5 h-5 flex items-center justify-center text-white text-xs font-bold">
                   ✕
