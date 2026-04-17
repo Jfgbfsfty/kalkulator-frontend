@@ -10,17 +10,6 @@ const STATUS_CONFIG = {
   ZWOLNIONY: { label: 'Zwolniony', cls: 'badge-green' },
 };
 
-const API_BASE = (() => {
-  const raw = (import.meta.env.VITE_API_URL || '').replace(/^"|"$/g, '').replace(/\/api$/, '').replace(/\/$/, '');
-  return raw;
-})();
-
-const getImgUrl = (url) => {
-  if (!url) return null;
-  if (url.startsWith('http')) return url;
-  return `${API_BASE}${url}`;
-};
-
 const emptyForm = { model: '', licensePlate: '', owner: '', reason: '', status: 'POSZUKIWANY', image: null, imagePreview: null, removeImage: false };
 
 export default function WantedVehicles() {
@@ -62,15 +51,13 @@ export default function WantedVehicles() {
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      setForm((f) => ({ ...f, image: file, imagePreview: evt.target.result, removeImage: false }));
-    };
-    reader.readAsDataURL(file);
+    if (form.imagePreview) URL.revokeObjectURL(form.imagePreview);
+    setForm({ ...form, image: file, imagePreview: URL.createObjectURL(file), removeImage: false });
   };
 
   const handleRemoveImage = () => {
-    setForm((f) => ({ ...f, image: null, imagePreview: null, removeImage: true }));
+    if (form.imagePreview) URL.revokeObjectURL(form.imagePreview);
+    setForm({ ...form, image: null, imagePreview: null, removeImage: true });
   };
 
   const handleSave = async (e) => {
@@ -167,10 +154,10 @@ export default function WantedVehicles() {
                   <td className="table-cell">
                     {v.imageUrl ? (
                       <img
-                        src={getImgUrl(v.imageUrl)}
+                        src={v.imageUrl}
                         alt={v.model}
                         className="h-10 w-16 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
-                        onClick={() => setViewImage(getImgUrl(v.imageUrl))}
+                        onClick={() => setViewImage(v.imageUrl)}
                       />
                     ) : (
                       <div className="h-10 w-16 rounded-lg bg-dark-700 flex items-center justify-center">
@@ -235,7 +222,7 @@ export default function WantedVehicles() {
             <label className="block text-sm font-medium text-slate-300 mb-1">Zdjęcie pojazdu</label>
             {editing?.imageUrl && !form.removeImage && !form.imagePreview && (
               <div className="mb-2 relative inline-block">
-                <img src={getImgUrl(editing.imageUrl)} alt="Aktualne zdjęcie" className="h-28 rounded-lg object-cover" />
+                <img src={editing.imageUrl} alt="Aktualne zdjęcie" className="h-28 rounded-lg object-cover" />
                 <button type="button" onClick={handleRemoveImage}
                   className="absolute top-1 right-1 bg-red-600 hover:bg-red-700 rounded-full w-5 h-5 flex items-center justify-center text-white text-xs font-bold">
                   ✕
