@@ -31,7 +31,7 @@ export default function MandateCalculator() {
 
   const [mandates, setMandates] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState(new Set());
+  const [selected, setSelected] = useState(new Map()); // Map<id, qty>
   const [filterCategory, setFilterCategory] = useState('ALL');
   const [showModal, setShowModal] = useState(false);
   const [editingMandate, setEditingMandate] = useState(null);
@@ -75,27 +75,37 @@ export default function MandateCalculator() {
   const totalSum = useMemo(() => {
     return mandates
       .filter((m) => selected.has(m._id))
-      .reduce((sum, m) => sum + m.price, 0);
+      .reduce((sum, m) => sum + m.price * (selected.get(m._id) || 1), 0);
   }, [selected, mandates]);
 
   const totalPoints = useMemo(() => {
     return mandates
       .filter((m) => selected.has(m._id))
-      .reduce((sum, m) => sum + (m.penaltyPoints || 0), 0);
+      .reduce((sum, m) => sum + (m.penaltyPoints || 0) * (selected.get(m._id) || 1), 0);
   }, [selected, mandates]);
 
   const selectedMandates = mandates.filter((m) => selected.has(m._id));
 
   const toggleMandate = (id) => {
     setSelected((prev) => {
-      const next = new Set(prev);
+      const next = new Map(prev);
       if (next.has(id)) next.delete(id);
-      else next.add(id);
+      else next.set(id, 1);
       return next;
     });
   };
 
-  const clearSelection = () => setSelected(new Set());
+  const changeQty = (id, delta) => {
+    setSelected((prev) => {
+      const next = new Map(prev);
+      const current = next.get(id) || 1;
+      const newQty = Math.max(1, Math.min(10, current + delta));
+      next.set(id, newQty);
+      return next;
+    });
+  };
+
+  const clearSelection = () => setSelected(new Map());
 
   const openCreate = () => {
     setEditingMandate(null);
@@ -231,23 +241,25 @@ export default function MandateCalculator() {
                   {items.map((m) => (
                     <div
                       key={m._id}
-                      className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
+                      className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${
                         selected.has(m._id)
                           ? 'bg-primary-600/20 border-primary-500/50'
                           : 'bg-dark-800 border-dark-500 hover:border-dark-400'
                       }`}
-                      onClick={() => toggleMandate(m._id)}
                     >
-                      <div className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
-                        selected.has(m._id) ? 'bg-primary-600 border-primary-500' : 'border-dark-400'
-                      }`}>
+                      <div
+                        className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors cursor-pointer ${
+                          selected.has(m._id) ? 'bg-primary-600 border-primary-500' : 'border-dark-400'
+                        }`}
+                        onClick={() => toggleMandate(m._id)}
+                      >
                         {selected.has(m._id) && (
                           <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7"/>
                           </svg>
                         )}
                       </div>
-                      <div className="flex-1 min-w-0">
+                      <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleMandate(m._id)}>
                         <p className="text-slate-200 font-medium text-sm">{m.title}</p>
                         <p className="text-slate-500 text-xs truncate">{m.description}</p>
                       </div>
@@ -262,6 +274,20 @@ export default function MandateCalculator() {
                             </svg>
                             {m.penaltyPoints} pkt
                           </span>
+                        )}
+                        {selected.has(m._id) && (
+                          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              onClick={() => changeQty(m._id, -1)}
+                              className="w-6 h-6 rounded bg-dark-600 hover:bg-dark-500 text-slate-300 flex items-center justify-center text-sm font-bold transition-colors"
+                            >−</button>
+                            <span className="w-6 text-center text-white font-semibold text-sm">{selected.get(m._id)}</span>
+                            <button
+                              onClick={() => changeQty(m._id, 1)}
+                              disabled={selected.get(m._id) >= 10}
+                              className="w-6 h-6 rounded bg-dark-600 hover:bg-dark-500 text-slate-300 flex items-center justify-center text-sm font-bold transition-colors disabled:opacity-40"
+                            >+</button>
+                          </div>
                         )}
                         {isAdmin && (
                           <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
@@ -309,24 +335,31 @@ export default function MandateCalculator() {
                 </p>
               ) : (
                 <div className="space-y-2 mb-4">
-                  {selectedMandates.map((m) => (
+                  {selectedMandates.map((m) => {
+                    const qty = selected.get(m._id) || 1;
+                    return (
                     <div key={m._id} className="flex justify-between items-start text-sm">
-                      <span className="text-slate-300 leading-snug flex-1 mr-2">{m.title}</span>
+                      <span className="text-slate-300 leading-snug flex-1 mr-2">
+                        {m.title}{qty > 1 && <span className="text-primary-400 font-semibold ml-1">x{qty}</span>}
+                      </span>
                       <div className="flex flex-col items-end gap-0.5 shrink-0">
-                        <span className="text-emerald-400 font-medium">{m.price.toLocaleString('pl-PL')} $</span>
+                        <span className="text-emerald-400 font-medium">{(m.price * qty).toLocaleString('pl-PL')} $</span>
                         {m.penaltyPoints > 0 && (
-                          <span className="text-red-400 text-xs">{m.penaltyPoints} pkt</span>
+                          <span className="text-red-400 text-xs">{m.penaltyPoints * qty} pkt</span>
                         )}
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
 
               <div className="border-t border-dark-600 pt-4">
                 <div className="flex justify-between items-center">
                   <span className="text-slate-400">Mandatów:</span>
-                  <span className="text-white font-medium">{selectedMandates.length}</span>
+                  <span className="text-white font-medium">
+                    {[...selected.values()].reduce((a, b) => a + b, 0)}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center mt-2">
                   <span className="text-slate-400">Łączna kwota:</span>
