@@ -26,7 +26,8 @@ export default function WantedVehicles() {
   const [saving, setSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [viewImage, setViewImage] = useState(null);
-  const [blobUrls, setBlobUrls] = useState({});
+
+  const getDataUri = (v) => v.imageData && v.imageMimeType ? `data:${v.imageMimeType};base64,${v.imageData}` : null;
 
   const fetchVehicles = async () => {
     setLoading(true);
@@ -44,31 +45,6 @@ export default function WantedVehicles() {
   };
 
   useEffect(() => { fetchVehicles(); }, [filterStatus]);
-
-  // Po załadowaniu listy pobierz obrazki przez api (ten sam axios = brak problemów CORS)
-  useEffect(() => {
-    let cancelled = false;
-    const fetchImages = async () => {
-      const updates = {};
-      for (const v of vehicles.filter(v => v.imageMimeType)) {
-        if (cancelled) return;
-        try {
-          const res = await api.get(`/wanted-vehicles/${v._id}/image`, { responseType: 'blob' });
-          if (!cancelled) updates[v._id] = URL.createObjectURL(res.data);
-        } catch (err) {
-          console.error(`[WantedVehicles] obraz ${v._id} błąd:`, err?.response?.status, err?.message);
-        }
-      }
-      if (!cancelled) {
-        setBlobUrls(prev => {
-          Object.values(prev).forEach(u => URL.revokeObjectURL(u));
-          return updates;
-        });
-      }
-    };
-    if (vehicles.length > 0) fetchImages();
-    return () => { cancelled = true; };
-  }, [vehicles]);
 
   const openCreate = () => { setEditing(null); setForm(emptyForm); setShowModal(true); };
   const openEdit = (v) => {
@@ -181,12 +157,12 @@ export default function WantedVehicles() {
               ) : vehicles.map((v) => (
                 <tr key={v._id} className="table-row">
                   <td className="table-cell">
-                    {blobUrls[v._id] ? (
+                    {(() => { const src = getDataUri(v); return src ? (
                       <img
-                        src={blobUrls[v._id]}
+                        src={src}
                         alt={v.model}
                         className="h-10 w-16 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
-                        onClick={() => setViewImage(blobUrls[v._id])}
+                        onClick={() => setViewImage(src)}
                       />
                     ) : (
                       <div className="h-10 w-16 rounded-lg bg-dark-700 border border-dark-600 flex items-center justify-center">
@@ -194,7 +170,7 @@ export default function WantedVehicles() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                         </svg>
                       </div>
-                    )}
+                    ); })()}
                   </td>
                   <td className="table-cell font-medium">{v.model}</td>
                   <td className="table-cell text-slate-400">{v.licensePlate || '—'}</td>
@@ -249,9 +225,9 @@ export default function WantedVehicles() {
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-1">Zdjęcie pojazdu</label>
-            {editing?.imageMimeType && !form.removeImage && !form.imagePreview && blobUrls[editing._id] && (
+            {editing && getDataUri(editing) && !form.removeImage && !form.imagePreview && (
               <div className="mb-2 relative inline-block">
-                <img src={blobUrls[editing._id]} alt="Aktualne zdjęcie" className="h-28 rounded-lg object-cover" />
+                <img src={getDataUri(editing)} alt="Aktualne zdjęcie" className="h-28 rounded-lg object-cover" />
                 <button type="button" onClick={handleRemoveImage}
                   className="absolute top-1 right-1 bg-red-600 hover:bg-red-700 rounded-full w-5 h-5 flex items-center justify-center text-white text-xs font-bold">
                   ✕
