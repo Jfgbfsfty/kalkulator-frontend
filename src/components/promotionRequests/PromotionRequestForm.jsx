@@ -4,6 +4,17 @@ import api from '../../services/api.js';
 import toast from 'react-hot-toast';
 
 const PLAYER_RANKS = ['Drógówka', 'Kadet', 'Sierżant', 'Z-szef', 'Szef'];
+const MAX_AUTO_RANK = 'Z-szef'; // automatyczny awans max do Z-szef
+
+const nextRank = (current) => {
+  const idx = PLAYER_RANKS.indexOf(current);
+  if (idx === -1) return null;
+  const next = PLAYER_RANKS[idx + 1];
+  if (!next) return null;
+  // nie przyznajemy automatycznie wyższego niż MAX_AUTO_RANK
+  if (PLAYER_RANKS.indexOf(next) > PLAYER_RANKS.indexOf(MAX_AUTO_RANK)) return null;
+  return next;
+};
 
 const emptyForm = {
   currentRank: 'Drógówka',
@@ -84,7 +95,13 @@ export default function PromotionRequestForm() {
       .catch(() => {});
   }, []);
 
-  const set = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
+  const set = (field) => (e) => setForm((f) => {
+    const updated = { ...f, [field]: e.target.value };
+    if (field === 'currentRank') {
+      updated.desiredRank = nextRank(e.target.value) || e.target.value;
+    }
+    return updated;
+  });
 
   const handleDiscordLogin = () => {
     window.location.href = `${import.meta.env.VITE_API_URL || ''}/api/promotion-auth/discord`;
@@ -211,14 +228,13 @@ export default function PromotionRequestForm() {
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-1">Aktualny stopień <span className="text-red-400">*</span></label>
             <select className="input-field" value={form.currentRank} onChange={set('currentRank')} required>
-              {PLAYER_RANKS.map((r) => <option key={r} value={r}>{r}</option>)}
+              {PLAYER_RANKS.filter((r) => nextRank(r) !== null).map((r) => <option key={r} value={r}>{r}</option>)}
             </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-1">Wnioskowany stopień <span className="text-red-400">*</span></label>
-            <select className="input-field" value={form.desiredRank} onChange={set('desiredRank')} required>
-              {PLAYER_RANKS.filter((r) => r !== form.currentRank).map((r) => <option key={r} value={r}>{r}</option>)}
-            </select>
+            <div className="input-field bg-dark-700 text-slate-300 cursor-not-allowed">{form.desiredRank}</div>
+            <p className="text-slate-500 text-xs mt-1">Automatycznie: następny stopień po aktualnym (max Z-szef)</p>
           </div>
         </div>
 
