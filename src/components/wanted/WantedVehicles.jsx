@@ -37,10 +37,6 @@ export default function WantedVehicles() {
       if (search) params.search = search;
       const res = await api.get('/wanted-vehicles', { params });
       setVehicles(res.data.data);
-      // DEBUG - usuń po naprawieniu
-      res.data.data.forEach(v => {
-        console.log(`[DEBUG] ${v.model}: imageMimeType=${v.imageMimeType}, imageData length=${v.imageData?.length ?? 'BRAK'}, imageData prefix=${v.imageData?.slice(0,30) ?? 'BRAK'}`);
-      });
     } catch {
       toast.error('Błąd ładowania danych');
     } finally {
