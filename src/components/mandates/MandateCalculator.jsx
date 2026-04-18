@@ -125,8 +125,8 @@ export default function MandateCalculator() {
       toast.error('Nieprawidłowa cena'); return;
     }
     const penaltyPoints = parseInt(form.penaltyPoints, 10) || 0;
-    if (penaltyPoints < 0 || penaltyPoints > 10) {
-      toast.error('Punkty karne 0–10'); return;
+    if (penaltyPoints < 0 || penaltyPoints > 24) {
+      toast.error('Punkty karne 0–24'); return;
     }
 
     setSaving(true);
@@ -396,13 +396,13 @@ export default function MandateCalculator() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1">Punkty karne (0–10)</label>
+              <label className="block text-sm font-medium text-slate-300 mb-1">Punkty karne (0–24)</label>
               <input
                 type="number"
                 className="input-field"
                 placeholder="np. 2"
                 min={0}
-                max={10}
+                max={24}
                 value={form.penaltyPoints}
                 onChange={(e) => setForm({ ...form, penaltyPoints: e.target.value })}
               />
