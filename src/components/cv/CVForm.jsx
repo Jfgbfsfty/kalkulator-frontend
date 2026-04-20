@@ -28,11 +28,13 @@ export default function CVForm() {
 
   const set = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
 
-  // Odczytaj token Discord z URL po powrocie z OAuth2
+  // Odczytaj token Discord z hash po powrocie z OAuth2
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const token    = params.get('discord_token');
-    const username = params.get('discord_username');
+    const hash = window.location.hash.slice(1);
+    if (!hash) return;
+    const params = new URLSearchParams(hash);
+    const token    = params.get('dt');
+    const username = params.get('du');
     const errCode  = params.get('discord_error');
 
     if (token && username) {

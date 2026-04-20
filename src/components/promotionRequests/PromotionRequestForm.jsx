@@ -67,12 +67,14 @@ export default function PromotionRequestForm() {
   const [cooldown, setCooldown] = useState(null);
   const [discordError, setDiscordError] = useState('');
 
-  // Odczytaj parametry Discord OAuth2 z URL po powrocie z redirectu
+  // Odczytaj parametry Discord OAuth2 z hash po powrocie z redirectu
   useEffect(() => {
-    const token = searchParams.get('discord_token');
-    const username = searchParams.get('discord_username');
-    const id = searchParams.get('discord_id');
-    const error = searchParams.get('discord_error');
+    const hash = window.location.hash.slice(1);
+    if (!hash) return;
+    const params = new URLSearchParams(hash);
+    const token    = params.get('dt');
+    const username = params.get('du');
+    const error    = params.get('discord_error');
 
     if (error) {
       const msgs = {
@@ -81,11 +83,11 @@ export default function PromotionRequestForm() {
         user: 'Nie udało się pobrać danych z Discorda.',
       };
       setDiscordError(msgs[error] || 'Błąd logowania Discord.');
-      setSearchParams({}, { replace: true });
-    } else if (token && username && id) {
-      setDiscordAuth({ token, username, id });
+      window.history.replaceState(null, '', window.location.pathname);
+    } else if (token && username) {
+      setDiscordAuth({ token, username, id: null });
       setDiscordError('');
-      setSearchParams({}, { replace: true });
+      window.history.replaceState(null, '', window.location.pathname);
     }
   }, []);
 
